@@ -1,7 +1,7 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "react-query";
 import axios, { AxiosResponse } from "axios";
-import { ReactQueryDevtools } from "react-query-devtools";
+
 // Components
 import Drawer from "@material-ui/core/Drawer";
 import LinearProgress from "@material-ui/core/LinearProgress";
@@ -41,16 +41,44 @@ const App = () => {
     error,
   } = useQuery<AxiosResponse<CartItemType[]>>("products", getProducts);
 
+  console.log(items);
+  console.log();
+
   const getTotalItems = (items: CartItemType[]) =>
     items.reduce((accumulator: number, item) => accumulator + item.amount, 0);
 
-  const handleAddToCart = (clickedItem: CartItemType) => null;
+  const handleAddToCart = (clickedItem: CartItemType) => {
+    setCartItems((previousItems) => {
+      //1. is the item already add in the cart ?
+      const isItemInCart = previousItems.find(
+        (item) => item.id === clickedItem.id
+      );
+      if (isItemInCart) {
+        return previousItems.map((item) =>
+          item.id === clickedItem.id
+            ? { ...item, amount: item.amount + 1 }
+            : item
+        );
+      }
 
-  const handleRemoveFromCart = () => null;
+      // first time the item added to the cart
+      return [...previousItems, { ...clickedItem, amount: 1 }];
+    });
+  };
 
-  const addToCart = () => null;
+  const handleRemoveFromCart = (clickedItemId: CartItemType["id"]) => {
+    setCartItems((previousItems) =>
+      previousItems.reduce((accumulator, item) => {
+        //not to make amount of products negative
+        if (item.id === clickedItemId) {
+          if (item.amount === 1) return accumulator;
+          return [...accumulator, { ...item, amount: item.amount - 1 }];
+        }
 
-  const removeFromCart = () => null;
+        return [...accumulator, item];
+      }, [] as CartItemType[])
+    );
+  };
 
   if (isLoading) return <LinearProgress />;
   if (error) return <div>Something went wrong ...</div>;
@@ -65,8 +93,8 @@ const App = () => {
         >
           <Cart
             cartItems={cartItems}
-            addToCart={addToCart}
-            removeFromCart={removeFromCart}
+            addToCart={handleAddToCart}
+            removeFromCart={handleRemoveFromCart}
           />
         </Drawer>
         <StyledButton onClick={() => setIsCardOpen(true)}>
